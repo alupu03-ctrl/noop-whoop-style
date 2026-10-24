@@ -64,13 +64,13 @@ jobs:
           mkdir -p stage/Payload dist
           ditto "$app" stage/Payload/NOOP.app
           rm -rf stage/Payload/NOOP.app/Watch
-          (cd stage && /usr/bin/ditto -c -k --sequesterRsrc --keepParent Payload ../dist/NOOP-whoop-style.ipa)
+          (cd stage && /usr/bin/ditto -c -k --sequesterRsrc --keepParent Payload ../dist/NOOP-whoop-ui2.ipa)
           ls -lh dist
 
       - uses: actions/upload-artifact@v4
         with:
           name: NOOP-ipa
-          path: dist/NOOP-whoop-style.ipa
+          path: dist/NOOP-whoop-ui2.ipa
           if-no-files-found: error
 
       - name: Publish release + builds branch
@@ -79,13 +79,13 @@ jobs:
         run: |
           set -euo pipefail
           tag="build-${GITHUB_RUN_NUMBER}"
-          gh release create "$tag" dist/NOOP-whoop-style.ipa --repo "$GITHUB_REPOSITORY" \
-            --title "NOOP WHOOP-style build ${GITHUB_RUN_NUMBER}" \
+          gh release create "$tag" dist/NOOP-whoop-ui2.ipa --repo "$GITHUB_REPOSITORY" \
+            --title "NOOP WHOOP UI 2 build ${GITHUB_RUN_NUMBER}" \
             --notes "Unsigned IPA for AltStore / SideStore. Open this page on your iPhone, tap the .ipa, then Share → AltStore." --latest
           git config user.name "build-bot"; git config user.email "build-bot@users.noreply.github.com"
           git checkout --orphan builds
           git rm -rf --cached . >/dev/null
-          cp dist/NOOP-whoop-style.ipa ./NOOP-whoop-style.ipa
-          git add -f NOOP-whoop-style.ipa
+          cp dist/NOOP-whoop-ui2.ipa ./NOOP-whoop-ui2.ipa
+          git add -f NOOP-whoop-ui2.ipa
           git commit -qm "IPA build ${GITHUB_RUN_NUMBER}"
           git push -f origin builds

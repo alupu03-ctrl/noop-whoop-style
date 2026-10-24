@@ -279,7 +279,8 @@ struct RootTabView: View {
     private var moreTab: some View {
         NavigationStack {
             ScreenScaffold(title: "More", subtitle: "Everything else, one tap away",
-                           onRefresh: { await repo.refresh() }) {
+                           onRefresh: { await repo.refresh() },
+                           topBackground: liquidScaffoldSky()) {
                 moreSection("Insights") {
                     MoreRow("What Moves You", "wand.and.sparkles") { InsightsHubView() }
                     MoreRow("Intelligence", "brain.head.profile") { IntelligenceView() }
@@ -538,31 +539,39 @@ private struct FloatingTabBar: View {
     var onReselect: (Int) -> Void = { _ in }
 
     private struct Item: Identifiable { let title: LocalizedStringKey; let icon: String; let tag: Int; var id: Int { tag } }
-    private let nav = [Item(title: "Home", icon: "circle.circle", tag: 0),
-                       Item(title: "Trends", icon: "chart.bar.xaxis", tag: 1),
-                       Item(title: "Sleep", icon: "moon.zzz", tag: 2),
-                       Item(title: "More", icon: "line.3.horizontal", tag: 3)]
+    private let nav = [Item(title: "Today", icon: "square.grid.2x2", tag: 0),
+                       Item(title: "Trends", icon: "chart.line.uptrend.xyaxis", tag: 1),
+                       Item(title: "Sleep", icon: "bed.double", tag: 2),
+                       Item(title: "More", icon: "ellipsis", tag: 3)]
 
     var body: some View {
-        // Clean redesign: a flat, full-width black bar with a single hairline on top — no glass,
-        // no floating capsule. Four evenly spaced tabs; the active one lights up in white.
-        HStack(spacing: 0) {
+        // One frosted glass bar, four evenly-spaced tabs. The quick-action "+" now lives in the
+        // top-right of each screen's header (balancing the profile avatar on the left).
+        HStack(spacing: 2) {
             tabButton(nav[0])
             tabButton(nav[1])
             tabButton(nav[2])
             tabButton(nav[3])
         }
-        .padding(.top, 8)
-        .padding(.bottom, 2)
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity)
-        .background(
-            StrandPalette.surfaceBase
-                .overlay(alignment: .top) {
-                    Rectangle().fill(StrandPalette.hairline).frame(height: 1)
-                }
-                .ignoresSafeArea(edges: .bottom)
+        .padding(.vertical, 7)
+        .padding(.horizontal, 8)
+        .liquidGlass(in: Capsule())
+        // Over the liquid Today the sky ends at ~340pt, so the bar floats on flat opaque surfaceBase —
+        // a blur material has nothing to dissolve and hardens into a solid lozenge (2026-07-02:
+        // "clips into a solid shape"). A faint translucent scrim INSIDE the same Capsule keeps the pill
+        // reading as tinted glass, not a slab, even against dead-flat colour.
+        .background(.white.opacity(0.06), in: Capsule())
+        // Soft top-lit rim instead of one hard hairline, so there's no crisp cut-out edge.
+        .overlay(
+            Capsule().strokeBorder(
+                LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0.04)],
+                               startPoint: .top, endPoint: .bottom),
+                lineWidth: 0.75)
         )
+        // Lighter, wider shadow: real elevation without stamping a dark halo on the flat canvas.
+        .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 8)
+        .padding(.horizontal, 22)
+        .padding(.bottom, 4)
     }
 
     private func tabButton(_ item: Item) -> some View {
@@ -576,14 +585,11 @@ private struct FloatingTabBar: View {
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: item.icon)
-                    .font(.system(size: 19, weight: active ? .semibold : .regular))
-                    .frame(height: 22)
+                    .font(.system(size: 18, weight: active ? .semibold : .regular))
                 Text(item.title)
-                    .font(.system(size: 10, weight: .bold).width(.condensed))
-                    .textCase(.uppercase)
-                    .tracking(0.8)
+                    .font(.system(size: 10, weight: active ? .semibold : .medium))
             }
-            .foregroundStyle(active ? StrandPalette.textPrimary : StrandPalette.textTertiary)
+            .foregroundStyle(active ? StrandPalette.accent : StrandPalette.textSecondary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 3)
             .contentShape(Rectangle())

@@ -63,10 +63,7 @@ struct LiquidSky: View {
     var hour: Double?
     @Environment(\.colorScheme) private var scheme
 
-    /// Clean redesign: screens sit on the flat black canvas — the time-of-day sky is retired.
-    var body: some View { Color.clear }
-
-    @ViewBuilder var legacySkyBody: some View {
+    var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { tl in
             let now = liquidSeconds(tl.date)
             let h = hour ?? liveHour()
@@ -153,10 +150,7 @@ struct LiquidSkyStatic: View {
     var hour: Double?
     @Environment(\.colorScheme) private var scheme
 
-    /// Clean redesign: screens sit on the flat black canvas — the time-of-day sky is retired.
-    var body: some View { Color.clear }
-
-    @ViewBuilder var legacySkyBody: some View {
+    var body: some View {
         let h = hour ?? liveHour()
         let dark = scheme == .dark
         let settle = Color(.sRGB,

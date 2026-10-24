@@ -15,33 +15,22 @@ public enum StrandFont {
 
     /// The house family — Helvetica Neue, a built-in system face. Weight is applied
     /// via `.weight()` since `Font.custom` ignores the design's default weight.
+    private static let family = "Helvetica Neue"
 
     /// Helvetica Neue at a FIXED size/weight — used by the big gauge/tile numerals (`display`,
     /// `rounded`, `number`) that live in fixed-geometry rings/tiles where unbounded growth would
     /// overflow. Prose and inline-number roles use `helveticaScaled` instead.
     private static func helvetica(_ size: CGFloat, weight: Font.Weight) -> Font {
-        // Clean redesign: SF Pro, CONDENSED, for the big numerals — tall, tight, athletic read-outs.
-        .system(size: size, weight: weight, design: .default).width(.condensed)
+        .custom(family, size: size).weight(weight)
     }
 
-    /// Prose / label roles: SF Pro at the text style whose default size matches the requested
-    /// point size, so they scale with Dynamic Type exactly as before.
+    /// Like `helvetica`, but the size SCALES with the user's Dynamic Type / Larger Text setting,
+    /// anchored to a matching text style. The plain `.custom(_:size:)` overload produces a FROZEN
+    /// point size, so every prose/label role used to ignore Dynamic Type entirely — this routes them
+    /// through `.custom(_:size:relativeTo:)` so they scale (available on the iOS 16 / macOS 13 floor).
     private static func helveticaScaled(_ size: CGFloat, weight: Font.Weight,
                                         relativeTo style: Font.TextStyle) -> Font {
-        .system(textStyle(for: size, fallback: style), design: .default, weight: weight)
-    }
-
-    private static func textStyle(for size: CGFloat, fallback: Font.TextStyle) -> Font.TextStyle {
-        switch size {
-        case 26...:   return .title
-        case 20..<26: return .title2
-        case 16..<20: return .headline
-        case 14..<16: return .subheadline
-        case 12.5..<14: return .footnote
-        case 11.5..<12.5: return .caption
-        case 10.5..<11.5: return .caption2
-        default: return fallback
-        }
+        .custom(family, size: size, relativeTo: style).weight(weight)
     }
 
     // MARK: Scale (§9.2)
@@ -87,14 +76,13 @@ public enum StrandFont {
 
     /// Overline 11 / Bold, +1.4 tracking (apply `.tracking(1.4)` at use site;
     /// `overlineText(_:)` does it for you). Sparing ALL-CAPS labels. Scales with Dynamic Type.
-    public static let overline = Font.system(.caption2, design: .default, weight: .bold).width(.condensed)
+    public static let overline = helveticaScaled(11, weight: .bold, relativeTo: .caption2)
 
     /// `overline` at a custom point size — same Helvetica face, weight and Dynamic-Type scaling
     /// (relativeTo `.caption2`), just smaller. Passing 11 returns exactly `.overline`. Lets a caller
     /// shrink an ALL-CAPS label to fit a small container without losing accessibility text-scaling.
     public static func overlineScaled(_ size: CGFloat) -> Font {
-        if size >= 10.5 { return overline }
-        return Font.system(size: size, weight: .bold, design: .default).width(.condensed)
+        helveticaScaled(size, weight: .bold, relativeTo: .caption2)
     }
 
     /// Mono 13 (SF Mono) — raw / log views. Tabular by nature.

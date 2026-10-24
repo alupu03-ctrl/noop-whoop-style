@@ -75,7 +75,7 @@ struct LiquidTodayView: View {
     /// Mock Vitality purple (#9b7bff) has no exact StrandPalette token in this theme.
     private let liquidPurple = Color(.sRGB, red: 0x9b / 255, green: 0x7b / 255, blue: 0xff / 255, opacity: 1)
     /// The liquid heart pink (matches LiquidThread's default + the mockup #ff6b81).
-    private let liquidHeart = Color(.sRGB, red: 1, green: 59 / 255, blue: 79 / 255, opacity: 1)
+    private let liquidHeart = Color(.sRGB, red: 1, green: 107 / 255, blue: 129 / 255, opacity: 1)
     /// Hero card fill: a translucent near-black so it floats over the sky (mock rgba(13,14,20,.78)).
     private let heroFill = Color(.sRGB, red: 13 / 255, green: 14 / 255, blue: 20 / 255, opacity: 0.80)
 
@@ -184,19 +184,19 @@ struct LiquidTodayView: View {
 
                 liquidRefreshIndicator   // grows in the revealed space; a vessel filling with the pull
 
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 12) {
                     scene
-                    synthesisSection
-                    lastWorkoutsSection
                     heartRateSection
+                    yourCardsSection
+                    synthesisSection
                     recoveryVitalsSection
                     keyMetricsSection
-                    yourCardsSection
+                    lastWorkoutsSection
                     dataSourcesSection
-                    Color.clear.frame(height: 90) // tab-bar clearance
+                    Color.clear.frame(height: 90) // floating tab-bar clearance
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 6)
+                .padding(.top, 30) // sit the title lower into the sky, not jammed under the status bar
             }
             #if os(macOS)
             // Keep the phone-shaped column readable + centred on the wide mac detail pane. The sky is a
@@ -210,7 +210,21 @@ struct LiquidTodayView: View {
         // The sky is a FIXED full-bleed backdrop drawn behind the scroll content, edge-to-edge under the
         // status bar. A ScrollView background does not scroll with the content, so pulling down never
         // moves the sky (the exact behaviour the scaffold uses on the classic Today).
-        .background(StrandPalette.surfaceBase.ignoresSafeArea())
+        .background(alignment: .top) {
+            ZStack(alignment: .top) {
+                StrandPalette.surfaceBase
+                // Reduce-motion (and low-power) users get the same sky posed still — no twinkle/breath.
+                // Also static until the first data load settles, so launch isn't fighting a live sky too.
+                Group {
+                    Color(hex: "#090B10")
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 340, alignment: .top)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
+            .ignoresSafeArea()
+        }
         // Swipe left/right to change DAYS (WHOOP-style). Tab-swipe is disabled on Today in RootTabView so
         // this owns the horizontal gesture here.
         .simultaneousGesture(daySwipeGesture)
@@ -301,133 +315,144 @@ struct LiquidTodayView: View {
 
     private var scene: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header: avatar · ‹ DAY › · battery + quick actions
-            ZStack {
+            HStack(alignment: .top) {
+                Button { showDayPicker = true } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(dayTitle)
+                            .font(StrandFont.rounded(28))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.4), radius: 10, y: 1)
+                        Text(dateLine)
+                            .font(StrandFont.caption)
+                            .foregroundStyle(.white.opacity(0.78))
+                            .shadow(color: .black.opacity(0.35), radius: 8, y: 1)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(dayTitle). Tap to pick a day, swipe to change day.")
+                .popover(isPresented: $showDayPicker) {
+                    DatePicker("", selection: dayPickerBinding, in: ...Repository.logicalDay(Date()),
+                               displayedComponents: [.date])
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .padding(12)
+                        .frame(minWidth: 320, minHeight: 360)
+                        .liquidPopoverAdaptation()
+                }
+                Spacer(minLength: 8)
                 HStack(spacing: 8) {
+                    // Support: a tap opens project info, attribution, and contact.
+                    Button { showSupport = true } label: {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 19, weight: .semibold))
+                            .foregroundStyle(StrandPalette.chargeColor)
+                            .frame(width: 34, height: 34)
+                            .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
+                    }
+                    .buttonStyle(LiquidPressStyle())
+                    .accessibilityLabel("Support NOOP: help and contact.")
+                    // Profile pic (the one set in Settings) → opens Settings, matching the classic Today.
                     Button { showSettings = true } label: {
-                        ProfileAvatarView(imageData: profile.avatarImageData, size: 32)
-                            .frame(width: 32, height: 32)
+                        ProfileAvatarView(imageData: profile.avatarImageData, size: 34)
+                            .frame(width: 34, height: 34)
                     }
                     .buttonStyle(LiquidPressStyle())
                     .accessibilityLabel("Profile and settings")
-                    Spacer(minLength: 8)
-                    LiquidBatteryButton()
                     LiquidAddButton()
-                }
-                HStack(spacing: 14) {
-                    Button { stepDay(1) } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(selectedDayOffset < earliestDayOffset
-                                             ? StrandPalette.textSecondary : StrandPalette.textTertiary.opacity(0.4))
-                            .frame(width: 24, height: 32)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Previous day")
-                    Button { showDayPicker = true } label: {
-                        VStack(spacing: 1) {
-                            Text(dayTitle.uppercased())
-                                .font(StrandFont.rounded(19, weight: .heavy))
-                                .tracking(1.2)
-                                .foregroundStyle(StrandPalette.textPrimary)
-                            Text(dateLine.uppercased())
-                                .font(StrandFont.overlineScaled(9))
-                                .tracking(1.0)
-                                .foregroundStyle(StrandPalette.textTertiary)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(dayTitle). Tap to pick a day, swipe to change day.")
-                    .popover(isPresented: $showDayPicker) {
-                        DatePicker("", selection: dayPickerBinding, in: ...Repository.logicalDay(Date()),
-                                   displayedComponents: [.date])
-                            .datePickerStyle(.graphical)
-                            .labelsHidden()
-                            .padding(12)
-                            .frame(minWidth: 320, minHeight: 360)
-                            .liquidPopoverAdaptation()
-                    }
-                    Button { stepDay(-1) } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(selectedDayOffset > 0
-                                             ? StrandPalette.textSecondary : StrandPalette.textTertiary.opacity(0.4))
-                            .frame(width: 24, height: 32)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Next day")
+                    LiquidBatteryButton()
                 }
             }
-            heroCard.padding(.top, 26)
+            // Subtle NOOP wordmark in the sky between header and hero. Perfectly centred (a letter row has
+            // no trailing tracking gap the way `Text(...).tracking()` does), with a tap easter egg.
+            Text("NOOP")
+                .font(.system(size: 13, weight: .black, design: .rounded))
+                .tracking(5)
+                .foregroundStyle(.white.opacity(0.8))
+                .frame(maxWidth: .infinity)
+                .padding(.top, 22)
+            heroCard.padding(.top, 22)
             if liveSessionsBeta {
-                liveSessionStartRow.padding(.top, 18)
+                liveSessionStartRow.padding(.top, 10)
             }
         }
     }
 
-    /// Step the selected day by `delta` (+1 = older, -1 = newer), clamped to the banked range.
-    private func stepDay(_ delta: Int) {
-        let next = Self.clampedDayOffset(current: selectedDayOffset, delta: delta, maxOffset: earliestDayOffset)
-        guard next != selectedDayOffset else { return }
-        withAnimation(StrandMotion.interactive) { selectedDayOffset = next }
-    }
-
-    /// One-tap Live Session start (silent guardian, beta) — a quiet flat row under the rings.
+    /// One-tap Live Session start (silent guardian, beta) — sits directly under the hero scores, the
+    /// Charge its band is gated on. Same translucent chrome as the hero card so it reads as part of the
+    /// sky scene, quiet by design.
     private var liveSessionStartRow: some View {
         Button { showLiveSession = true } label: {
             HStack(spacing: 10) {
                 Image(systemName: "shield.lefthalf.filled")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(StrandPalette.accent)
-                Text("START SESSION")
-                    .font(StrandFont.overline).tracking(1.4)
+                    .foregroundStyle(StrandPalette.metricCyan)
+                Text("Start session")
+                    .font(StrandFont.subhead)
                     .foregroundStyle(StrandPalette.textPrimary)
                 Text("BETA")
                     .font(StrandFont.overlineScaled(8.5)).tracking(1.2)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(RoundedRectangle(cornerRadius: 4).strokeBorder(StrandPalette.hairlineStrong, lineWidth: 1))
+                    .foregroundStyle(StrandPalette.textSecondary)
+                    .padding(.horizontal, 8).padding(.vertical, 2.5)
+                    .background(Capsule().fill(.white.opacity(0.05))
+                        .overlay(Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 1)))
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(StrandPalette.textTertiary)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 13)
+            .padding(.vertical, 11)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous).fill(StrandPalette.surfaceRaised)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(heroFill)
+                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(.white.opacity(0.11), lineWidth: 1))
             )
         }
         .buttonStyle(LiquidPressStyle())
         .accessibilityLabel("Start a live session. Beta. Silent strap coaching against today's Charge.")
     }
 
-    /// The three headline dials — Recovery, Strain, Sleep — as thick rings with the score inside.
+    // WHOOP-inspired score overview. Values remain wired to the original repository.
     private var heroCard: some View {
-        HStack(alignment: .top, spacing: 0) {
-            HeroScoreCell(label: "Recovery",
-                          score: displayDay?.recovery,
-                          display: displayDay?.recovery.map { "\(Int($0.rounded()))%" },
-                          tint: displayDay?.recovery.map { StrandPalette.recoveryColor($0) } ?? StrandPalette.chargeColor,
-                          animated: dataLoaded, onGuide: { guideSection = .charge })
-            HeroScoreCell(label: "Strain",
-                          score: displayDay?.strain,
-                          display: displayDay?.strain.map { effortText($0) },
-                          tint: StrandPalette.effortColor,
-                          animated: dataLoaded, onGuide: { guideSection = .effort })
-            HeroScoreCell(label: "Sleep",
-                          score: restScore,
-                          display: restScore.map { "\(Int($0.rounded()))%" },
-                          tint: StrandPalette.restColor,
-                          animated: dataLoaded, onGuide: { guideSection = .rest })
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("YOUR DAILY OVERVIEW")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .tracking(2)
+                    .foregroundStyle(.white.opacity(0.55))
+                Spacer()
+                Circle().fill(Color(hex: "#B7FF36")).frame(width: 7, height: 7)
+                Text("LIVE DATA").font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            HStack(alignment: .top, spacing: 10) {
+                WhoopScoreRing(label: "RECOVERY", value: displayDay?.recovery,
+                               suffix: "%", color: Color(hex: "#B7FF36")) {
+                    guideSection = .charge
+                }
+                WhoopScoreRing(label: "STRAIN", value: displayDay?.strain,
+                               suffix: "", color: Color(hex: "#59A7FF")) {
+                    guideSection = .effort
+                }
+                WhoopScoreRing(label: "SLEEP", value: restScore,
+                               suffix: "%", color: Color(hex: "#B18AFF")) {
+                    guideSection = .rest
+                }
+            }
         }
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .fill(Color(hex: "#171B24")))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .strokeBorder(.white.opacity(0.07), lineWidth: 1))
     }
 
     // MARK: - Heart rate
 
     private var heartRateSection: some View {
         VStack(spacing: 8) {
-            sectionHead("HEART RATE", trailing: "LIVE")
+            sectionHead("HEART RATE", trailing: "Live")
             // #979: the whole-day HR trend (Deep Timeline) still exists but was buried behind Metrics →
             // Show all → Deep Timeline. Make the live HR card a one-tap route into it, with a visible
             // "Full day" affordance so it's discoverable again. (This comment used to claim the Deep
@@ -442,7 +467,7 @@ struct LiquidTodayView: View {
                         LiquidLiveHR(tint: liquidHeart, fallback: hrValues, animated: dataLoaded)
                         HStack(spacing: 4) {
                             Spacer()
-                            Text("FULL DAY").font(StrandFont.overline).tracking(1.2).foregroundStyle(StrandPalette.accent)
+                            Text("Full day").font(StrandFont.caption).foregroundStyle(StrandPalette.accent)
                             Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(StrandPalette.accent)
                         }
@@ -460,7 +485,7 @@ struct LiquidTodayView: View {
         VStack(spacing: 8) {
             HStack {
                 Text("YOUR CARDS").font(StrandFont.overline).tracking(1.6)
-                    .foregroundStyle(StrandPalette.textSecondary)
+                    .foregroundStyle(StrandPalette.textTertiary)
                 Spacer()
                 Button { showCustomise = true } label: {
                     Text("CUSTOMISE").font(StrandFont.overlineScaled(11)).tracking(1.0)
@@ -548,22 +573,24 @@ struct LiquidTodayView: View {
                                       value: String, tint: Color, frac: Double?) -> some View {
         NavigationLink { dest } label: {
             HStack(spacing: 12) {
-                LiquidVessel(value: frac, tint: tint, animated: false).frame(width: 26, height: 26)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title.uppercased()).font(StrandFont.overline).tracking(1.2)
+                LiquidVessel(value: frac, tint: tint, animated: false).frame(width: 30, height: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title.uppercased()).font(StrandFont.overlineScaled(11)).tracking(1.0)
                         .foregroundStyle(StrandPalette.textPrimary)
                     Text(sub).font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
                 }
                 Spacer(minLength: 8)
-                Text(value).font(StrandFont.number(20, weight: .bold)).foregroundStyle(StrandPalette.textPrimary)
+                Text(value).font(StrandFont.number(17)).foregroundStyle(StrandPalette.textPrimary)
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(StrandPalette.textTertiary)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 13)
+            .padding(.vertical, 11)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(StrandPalette.surfaceRaised)
+                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(StrandPalette.hairline, lineWidth: 1))
             )
         }
         .buttonStyle(LiquidPressStyle())
@@ -572,43 +599,58 @@ struct LiquidTodayView: View {
     // MARK: - Synthesis (greeting + readiness pills + one-liner)
 
     private var synthesisSection: some View {
-        Button { withAnimation(.easeInOut(duration: 0.2)) { synthesisExpanded.toggle() } } label: {
-            card {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
-                        Circle().fill(outlookTint).frame(width: 8, height: 8)
-                        Text(greeting.uppercased()).font(StrandFont.overline).tracking(1.6)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .lineLimit(1).minimumScaleFactor(0.7)
-                        Spacer(minLength: 8)
-                        if let word = readinessWord {
-                            Text(word.uppercased())
-                                .font(StrandFont.overline).tracking(1.4)
-                                .foregroundStyle(outlookTint)
-                                .padding(.horizontal, 9).padding(.vertical, 4)
-                                .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .fill(outlookTint.opacity(0.14)))
-                        }
-                        Image(systemName: synthesisExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(StrandPalette.textTertiary)
+        VStack(spacing: 8) {
+            HStack {
+                Text(greeting).font(StrandFont.rounded(19)).foregroundStyle(StrandPalette.textPrimary)
+                    .lineLimit(1).minimumScaleFactor(0.6)   // yield to the pills rather than push them to wrap
+                Spacer(minLength: 8)
+                HStack(spacing: 8) {
+                    if let word = readinessWord {
+                        Text(word)
+                            .font(StrandFont.caption.weight(.bold))
+                            .foregroundStyle(StrandPalette.chargeColor)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(StrandPalette.chargeColor.opacity(0.14))
+                                .overlay(Capsule().strokeBorder(StrandPalette.chargeColor.opacity(0.3), lineWidth: 1)))
                     }
-                    Text(synthLine).font(StrandFont.headline).foregroundStyle(StrandPalette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if synthesisExpanded {
-                        Text(readiness.summary).font(StrandFont.subhead)
-                            .foregroundStyle(StrandPalette.textSecondary)
+                    HStack(spacing: 5) {
+                        Circle().fill(StrandPalette.chargeColor).frame(width: 6, height: 6)
+                        Text(displayDay?.recovery != nil ? "Solid" : "Calibrating")
+                            .font(StrandFont.caption.weight(.bold))
+                            .foregroundStyle(StrandPalette.chargeColor)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().strokeBorder(StrandPalette.chargeColor.opacity(0.3), lineWidth: 1))
+                }
+                .fixedSize(horizontal: true, vertical: false)   // pills keep their natural width — no "Calibrating" wrap
+            }
+            .padding(.horizontal, 2)
+            .padding(.top, 4)
+
+            Button { withAnimation(.easeInOut(duration: 0.2)) { synthesisExpanded.toggle() } } label: {
+                card {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("SYNTHESIS").font(StrandFont.overline).tracking(1.6)
+                                .foregroundStyle(StrandPalette.textSecondary)
+                            Spacer()
+                            Text(synthesisExpanded ? "hide" : "show").font(StrandFont.caption)
+                                .foregroundStyle(StrandPalette.textTertiary)
+                        }
+                        Text(synthLine).font(StrandFont.body).foregroundStyle(StrandPalette.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
+                        if synthesisExpanded {
+                            Text(readiness.summary).font(StrandFont.caption)
+                                .foregroundStyle(StrandPalette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }
+            .buttonStyle(LiquidPressStyle())
         }
-        .buttonStyle(LiquidPressStyle())
-    }
-
-    /// Outlook accent: the recovery zone colour when there's a score, else the neutral accent.
-    private var outlookTint: Color {
-        displayDay?.recovery.map { StrandPalette.recoveryColor($0) } ?? StrandPalette.accent
     }
 
     // MARK: - Recovery vitals
@@ -622,7 +664,7 @@ struct LiquidTodayView: View {
         return card {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("HEALTH MONITOR").font(StrandFont.overline).tracking(1.6)
+                    Text("RECOVERY VITALS").font(StrandFont.overline).tracking(1.6)
                         .foregroundStyle(StrandPalette.textSecondary)
                     Spacer()
                     if let line = vitalsProvenanceLine {
@@ -641,10 +683,10 @@ struct LiquidTodayView: View {
 
     private func vitalRow(_ label: String, _ value: String, _ tint: Color, _ frac: Double?) -> some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 2).fill(tint).frame(width: 3, height: 22)
-            Text(label).font(StrandFont.body).foregroundStyle(StrandPalette.textSecondary)
+            LiquidVessel(value: frac, tint: tint, animated: false).frame(width: 26, height: 26)
+            Text(label).font(StrandFont.subhead).foregroundStyle(StrandPalette.textSecondary)
             Spacer()
-            Text(value).font(StrandFont.number(19, weight: .bold)).foregroundStyle(StrandPalette.textPrimary)
+            Text(value).font(StrandFont.number(15)).foregroundStyle(StrandPalette.textPrimary)
         }
     }
 
@@ -656,7 +698,7 @@ struct LiquidTodayView: View {
         let hrv = displayDay?.avgHrv ?? vitalsDay?.avgHrv
         let rhr = (displayDay?.restingHr ?? vitalsDay?.restingHr).map(Double.init)
         return VStack(spacing: 8) {
-            sectionHead("KEY METRICS", trailing: "")
+            sectionHead("KEY METRICS", trailing: "14-day trend")
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                 ktile("Recovery", intText(displayDay?.recovery), "%", StrandPalette.chargeColor, frac(displayDay?.recovery))
                 ktile("Strain", intText(displayDay?.strain), "%", StrandPalette.effortColor, frac(displayDay?.strain))
@@ -666,7 +708,7 @@ struct LiquidTodayView: View {
                 ktile("Steps", stepsText, "", StrandPalette.chargeColor, fracOver(stepCount, 10000))
             }
             NavigationLink { MetricExplorerView() } label: {
-                Text("SHOW ALL METRICS").font(StrandFont.overline).tracking(1.4).foregroundStyle(StrandPalette.accent)
+                Text("Show all metrics").font(StrandFont.subhead).foregroundStyle(StrandPalette.accent)
                     .frame(maxWidth: .infinity).padding(.top, 2)
             }
             .buttonStyle(.plain)
@@ -677,19 +719,21 @@ struct LiquidTodayView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label.uppercased()).font(StrandFont.overlineScaled(9)).tracking(1.2)
                 .foregroundStyle(StrandPalette.textTertiary)
-            (Text(value).font(StrandFont.number(22, weight: .bold))
+            (Text(value).font(StrandFont.number(17))
                 + Text(unit.isEmpty ? "" : " \(unit)").font(StrandFont.caption))
                 .foregroundStyle(StrandPalette.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            LiquidTube(frac: frac ?? 0, tint: tint, height: 4, animated: false)
+            LiquidTube(frac: frac ?? 0, tint: tint, height: 8, animated: false)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 12)
+        .padding(.vertical, 11)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(StrandPalette.surfaceRaised)
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(StrandPalette.hairline, lineWidth: 1))
         )
     }
 
@@ -697,61 +741,45 @@ struct LiquidTodayView: View {
 
     private var lastWorkoutsSection: some View {
         VStack(spacing: 8) {
-            sectionHead("ACTIVITIES", trailing: workouts.isEmpty ? "" : "\(workouts.count) TOTAL")
-            if workouts.isEmpty {
-                card {
-                    HStack(spacing: 12) {
-                        Image(systemName: "figure.run")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(StrandPalette.textTertiary)
-                        Text("No activities yet")
-                            .font(StrandFont.body)
-                            .foregroundStyle(StrandPalette.textTertiary)
-                        Spacer()
-                    }
-                }
+            sectionHead("LAST WORKOUTS", trailing: "\(workouts.count) total")
+            if let w = workouts.first {
+                NavigationLink { WorkoutsView() } label: { workoutCard(w) }
+                    .buttonStyle(LiquidPressStyle())
             } else {
-                VStack(spacing: 6) {
-                    ForEach(Array(workouts.prefix(3).enumerated()), id: \.offset) { _, w in
-                        NavigationLink { WorkoutsView() } label: { workoutCard(w) }
-                            .buttonStyle(LiquidPressStyle())
-                    }
+                card {
+                    Text("No workouts yet")
+                        .font(StrandFont.subhead)
+                        .foregroundStyle(StrandPalette.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
     }
 
     private func workoutCard(_ w: WorkoutRow) -> some View {
-        HStack(spacing: 12) {
-            // Strain badge: the activity's score in a solid strain-blue tile.
-            Text(effortText(w.strain))
-                .font(StrandFont.number(17, weight: .bold))
-                .foregroundStyle(.white)
-                .lineLimit(1).minimumScaleFactor(0.6)
-                .frame(width: 48, height: 40)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(StrandPalette.effortColor.opacity(w.strain == nil ? 0.25 : 1)))
-            VStack(alignment: .leading, spacing: 3) {
-                Text(WorkoutSource.displaySport(w.sport).uppercased())
-                    .font(StrandFont.overline).tracking(1.2)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text(workoutSub(w)).font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
+        card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(WorkoutSource.displaySport(w.sport)).font(StrandFont.number(15))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Text(workoutSub(w)).font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
+                    }
+                    Spacer()
+                    (Text(effortText(w.strain)).font(StrandFont.number(15))
+                        + Text(" EFFORT").font(StrandFont.overlineScaled(9)))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                }
+                LiquidTube(frac: (w.strain ?? 0) / 100, tint: StrandPalette.effortColor, height: 12, animated: false)
             }
-            Spacer(minLength: 8)
-            Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(StrandPalette.textTertiary)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(StrandPalette.surfaceRaised))
     }
 
     // MARK: - Data sources
 
     private var dataSourcesSection: some View {
         VStack(spacing: 8) {
-            sectionHead("DATA SOURCES", trailing: "")
+            sectionHead("DATA SOURCES", trailing: "Provenance")
             NavigationLink { DataSourcesView() } label: {
                 card {
                     VStack(spacing: 12) {
@@ -776,12 +804,12 @@ struct LiquidTodayView: View {
 
     private func sectionHead(_ title: String, trailing: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title).font(StrandFont.overline).tracking(1.6).foregroundStyle(StrandPalette.textSecondary)
+            Text(title).font(StrandFont.overline).tracking(1.6).foregroundStyle(StrandPalette.textTertiary)
             Spacer()
-            Text(trailing).font(StrandFont.overlineScaled(10)).tracking(1.2).foregroundStyle(StrandPalette.textTertiary)
+            Text(trailing).font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
         }
         .padding(.horizontal, 2)
-        .padding(.top, 10)
+        .padding(.top, 4)
     }
 
     private func card<V: View>(@ViewBuilder _ content: () -> V) -> some View {
@@ -789,8 +817,10 @@ struct LiquidTodayView: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(StrandPalette.surfaceRaised)
+                    .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(StrandPalette.hairline, lineWidth: 1))
             )
     }
 
@@ -1035,59 +1065,67 @@ private struct LiquidWordmark: View {
 
 // MARK: - Hero score cell (count-up number over a filling vessel, tap-to-splash)
 
-/// One of the three headline dials (Recovery / Strain / Sleep): a thick ring that sweeps to the score
-/// with the value in big condensed numerals inside, and the label underneath. Tap → scoring guide.
+/// One of the three hero scores (Charge / Effort / Rest). The vessel fills from empty and the number
+/// COUNTS UP to the value when data lands; tapping the gauge itself splashes (the number is
+/// hit-transparent so the tap reaches the vessel). The label row taps through to the scoring guide.
 private struct HeroScoreCell: View {
     let label: String
     let score: Double?            // 0–100 (nil = no data yet)
-    let display: String?          // the formatted value shown inside the ring
     let tint: Color
+    let pill: String?
     let animated: Bool
     let onGuide: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shown: Double = 0
 
-    private var frac: Double { max(0, min(1, (score ?? 0) / 100)) }
+    private var frac: Double? { score.map { max(0, min(1, $0 / 100)) } }
 
     var body: some View {
-        Button(action: onGuide) {
-            VStack(spacing: 10) {
-                ZStack {
-                    Circle().stroke(Color.white.opacity(0.08), lineWidth: 9)
+        VStack(spacing: 7) {
+            ZStack {
+                LiquidVessel(value: frac, tint: tint, animated: animated)
+                    .frame(width: 96, height: 96)
+                Group {
                     if score != nil {
-                        Circle()
-                            .trim(from: 0, to: max(0.01, shown))
-                            .stroke(tint, style: StrokeStyle(lineWidth: 9, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
+                        CountUpNumber(value: shown, font: StrandFont.rounded(26))
+                    } else {
+                        Text("–").font(StrandFont.rounded(26))
                     }
-                    Text(display ?? "–")
-                        .font(StrandFont.rounded(28, weight: .heavy))
-                        .foregroundStyle(score == nil ? StrandPalette.textTertiary : StrandPalette.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                        .padding(.horizontal, 14)
                 }
-                .frame(width: 98, height: 98)
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.5), radius: 6, y: 1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .allowsHitTesting(false)   // taps fall through to the vessel → splash
+            }
+            Button(action: onGuide) {
                 HStack(spacing: 3) {
                     Text(label.uppercased()).font(StrandFont.overline).tracking(1.6)
-                    Image(systemName: "chevron.right").font(.system(size: 8, weight: .bold)).opacity(0.6)
+                    Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold)).opacity(0.6)
                 }
                 .foregroundStyle(StrandPalette.textSecondary)
             }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("\(label), \(score.map { String(Int($0.rounded())) } ?? "no data yet"). See how it is scored."))
+            if let pill {
+                Text(pill)
+                    .font(StrandFont.overlineScaled(8.5)).tracking(1.2)
+                    .foregroundStyle(StrandPalette.textSecondary)
+                    .padding(.horizontal, 8).padding(.vertical, 2.5)
+                    .background(Capsule().fill(.white.opacity(0.05))
+                        .overlay(Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 1)))
+            } else {
+                Color.clear.frame(height: 18) // keep the three labels vertically aligned
+            }
         }
-        .buttonStyle(LiquidPressStyle())
-        .accessibilityLabel(Text("\(label), \(display ?? "no data yet"). See how it is scored."))
-        .onAppear { sweep() }
-        .onChangeCompat(of: score) { _ in sweep() }
-        .onChangeCompat(of: animated) { _ in sweep() }
+        .frame(maxWidth: .infinity)
+        .onAppear { rollTo(score) }
+        .onChangeCompat(of: score) { v in rollTo(v) }
     }
 
-    private func sweep() {
-        guard animated, !reduceMotion else { shown = frac; return }
-        withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 1.0)) { shown = frac }
+    private func rollTo(_ v: Double?) {
+        guard let v else { shown = 0; return }
+        withAnimation(.easeOut(duration: 0.9)) { shown = v }   // counts up in step with the vessel filling
     }
 }
 
@@ -1101,9 +1139,9 @@ private struct LiquidAddButton: View {
         Button { router.requestQuickActions() } label: {
             Image(systemName: "plus")
                 .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(StrandPalette.textPrimary)
-                .frame(width: 32, height: 32)
-                .background(Circle().fill(StrandPalette.surfaceRaised))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(.white.opacity(0.16)))
         }
         .buttonStyle(LiquidPressStyle())
         .accessibilityLabel("Quick actions")
@@ -1204,7 +1242,8 @@ private struct LiquidBatteryButton: View {
     var body: some View {
         Button { router.openDevices() } label: {
             ZStack {
-                Circle().fill(StrandPalette.surfaceRaised)
+                Circle().fill(Color(.sRGB, red: 10 / 255, green: 11 / 255, blue: 16 / 255, opacity: 0.5))
+                Circle().strokeBorder(.white.opacity(0.15), lineWidth: 1)
                 if let pct = live.batteryPct {
                     Circle()
                         .trim(from: 0, to: max(0.02, min(1, pct / 100)))
@@ -1213,7 +1252,7 @@ private struct LiquidBatteryButton: View {
                         .padding(2.5)
                     Text("\(Int(pct.rounded()))")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(StrandPalette.textPrimary)
+                        .foregroundStyle(.white.opacity(0.9))
                     if live.charging == true {
                         // #972: the default Today never surfaced charging state — only the % ring. A small
                         // bolt over the ring gives the same signal as the "· Charging" text on Mac/Android.
@@ -1228,7 +1267,7 @@ private struct LiquidBatteryButton: View {
                         .foregroundStyle(.white.opacity(0.5))
                 }
             }
-            .frame(width: 32, height: 32)
+            .frame(width: 34, height: 34)
         }
         .buttonStyle(LiquidPressStyle())
         .accessibilityLabel(batteryAccessibility)
@@ -1330,5 +1369,45 @@ private extension View {
             LiveSessionView(onClose: { isPresented.wrappedValue = false })
         }
         #endif
+    }
+}
+
+// Reusable score ring with accessible no-data state; never fabricates health values.
+private struct WhoopScoreRing: View {
+    let label: String
+    let value: Double?
+    let suffix: String
+    let color: Color
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 10) {
+                ZStack {
+                    Circle().stroke(color.opacity(0.16), lineWidth: 8)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(min(1, max(0, (value ?? 0) / 100))))
+                        .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
+                        Text(value.map { String(Int($0.rounded())) } ?? "—")
+                            .font(.system(size: 27, weight: .bold, design: .rounded))
+                        Text(value == nil ? "" : suffix)
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.6)
+                }
+                .frame(width: 82, height: 82)
+                Text(label)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .tracking(1.1)
+                    .foregroundStyle(.white.opacity(0.78))
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label), \(value.map { String(Int($0.rounded())) } ?? "no data")")
     }
 }
