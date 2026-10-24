@@ -1,0 +1,71 @@
+# Builds the unsigned sideload IPA (AltStore / SideStore re-sign it on install).
+# Same steps as the iOS half of release.yml, without the macOS / Android / publish jobs.
+name: iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Drop the Watch app (sideload build)
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("project.yml")
+          text = path.read_text()
+          needle = "\n      - target: NOOPWatch\n"
+          if needle not in text:
+              raise SystemExit("NOOPWatch dependency not found in project.yml")
+          path.write_text(text.replace(needle, "\n", 1))
+          PY
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild -scheme NOOPiOS -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/ios-dd \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" || true
+          test -d build/ios-dd/Build/Products/Release-iphoneos/NOOP.app
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          app="build/ios-dd/Build/Products/Release-iphoneos/NOOP.app"
+          Tools/anonymize-ios-app.sh "$app"
+          mkdir -p stage/Payload dist
+          ditto "$app" stage/Payload/NOOP.app
+          rm -rf stage/Payload/NOOP.app/Watch
+          (cd stage && /usr/bin/ditto -c -k --sequesterRsrc --keepParent Payload ../dist/NOOP-whoop-style.ipa)
+          ls -lh dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NOOP-ipa
+          path: dist/NOOP-whoop-style.ipa
+          if-no-files-found: error

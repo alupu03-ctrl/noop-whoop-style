@@ -74,7 +74,10 @@ public struct SceneHeroBackground: View {
     /// The hero's rounded-rect corner radius (matches the card the scene sits behind).
     private let corner: CGFloat = NoopMetrics.cardRadius
 
-    public var body: some View {
+    /// Clean redesign: decorative scenery retired — screens sit on the flat black canvas.
+    public var body: some View { Color.clear }
+
+    @ViewBuilder var legacySceneryBody: some View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
@@ -139,7 +142,10 @@ public struct SceneScreenBackground: View {
     /// is what keeps the rings/data legible, so the scene itself doesn't need to be muted.
     private let imageOpacityCap: Double = 0.95
 
-    public var body: some View {
+    /// Clean redesign: decorative scenery retired — screens sit on the flat black canvas.
+    public var body: some View { Color.clear }
+
+    @ViewBuilder var legacySceneryBody: some View {
         Image(DayCycleScene.assetName(hour: hour))
             .resizable()
             .aspectRatio(contentMode: .fill)

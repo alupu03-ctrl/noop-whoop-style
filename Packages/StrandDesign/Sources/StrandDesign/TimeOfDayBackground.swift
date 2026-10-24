@@ -61,7 +61,10 @@ public struct TimeOfDayBackground: View {
     /// Whether drifting elements should actually move (caller opted in AND Reduce Motion is off).
     private var drift: Bool { animated && !reduceMotion }
 
-    public var body: some View {
+    /// Clean redesign: decorative scenery retired — screens sit on the flat black canvas.
+    public var body: some View { StrandPalette.surfaceBase }
+
+    @ViewBuilder var legacySceneryBody: some View {
         GeometryReader { geo in
             let size = geo.size
             ZStack {

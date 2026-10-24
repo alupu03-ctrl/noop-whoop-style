@@ -68,29 +68,29 @@ public enum StrandPalette {
 
     // MARK: Surfaces — deep navy canvas, tinted frosted cards
     // Background is a near-black navy (NOT pure black); cards float just above it.
-    public static let surfaceBase    = Color(light: "#F2F2F7", dark: "#121518") // WHOOP dark blue-grey canvas (sampled)
-    public static let surfaceRaised  = Color(light: "#FFFFFF", dark: "#25292C") // WHOOP grey list-card fill (sampled)
-    public static let surfaceOverlay = Color(light: "#FFFFFF", dark: "#1C1F26") // popovers / sheets / tooltips
-    public static let surfaceInset   = Color(light: "#E9E9EE", dark: "#1F2229") // wells / chart insets / segmented track
-    public static let hairline       = Color(light: "#D8D0BD", dark: "#21304A") // soft 1px border (stronger on light for card edges)
-    public static let hairlineStrong = Color(light: "#C7BCA4", dark: "#2E3C57") // hover / emphasis border
+    public static let surfaceBase    = Color(light: "#F2F2F7", dark: "#000000") // WHOOP dark blue-grey canvas (sampled)
+    public static let surfaceRaised  = Color(light: "#FFFFFF", dark: "#15181A") // WHOOP grey list-card fill (sampled)
+    public static let surfaceOverlay = Color(light: "#FFFFFF", dark: "#1A1D20") // popovers / sheets / tooltips
+    public static let surfaceInset   = Color(light: "#E9E9EE", dark: "#202427") // wells / chart insets / segmented track
+    public static let hairline       = Color(light: "#DADCE0", dark: "#1F2326") // soft 1px border (stronger on light for card edges)
+    public static let hairlineStrong = Color(light: "#C5C8CE", dark: "#2C3135") // hover / emphasis border
 
     // MARK: Text — deep navy-ink on paper / cool off-white on navy
     public static let textPrimary    = Color(light: "#1A2230", dark: "#F4F6F8")
-    public static let textSecondary  = Color(light: "#4C5564", dark: "#C8CFD8")
-    public static let textTertiary   = Color(light: "#7C8696", dark: "#8A94A4")
+    public static let textSecondary  = Color(light: "#4C5564", dark: "#B4BABF")
+    public static let textTertiary   = Color(light: "#7C8696", dark: "#6E767C")
 
     // MARK: Glow — ambient bloom behind heroes / charts (additive on dark; faint warm on light)
-    public static let glowAmbient    = Color(light: "#F0E4C0", dark: "#3A2D0A")
+    public static let glowAmbient    = Color(light: "#E6EEF6", dark: "#000000")
 
     // MARK: Accent — chrome anchor (links, selection, focus, generic accent). On DARK this is the brand
     // GOLD; on LIGHT it shifts to the deep brand BLUE so gold is reserved for the recovery/Charge world
     // and the gold FAB — keeping the light theme from reading as wall-to-wall gold (the maintainer 2026-06-16).
-    public static let accent         = Color(light: "#234F9E", dark: "#60A0E0") // WHOOP link/action blue (gold killed 2026-06-22)
-    public static let accentHover    = Color(light: "#1C3F80", dark: "#8FBEEC")
-    public static let accentMuted    = Color(light: "#E4ECF6", dark: "#16233A") // selected-row tint (pale blue / dark blue)
+    public static let accent         = Color(light: "#0077C8", dark: "#0093E7") // WHOOP link/action blue (gold killed 2026-06-22)
+    public static let accentHover    = Color(light: "#005FA0", dark: "#3AAEF0")
+    public static let accentMuted    = Color(light: "#E2EEF8", dark: "#0B2233") // selected-row tint (pale blue / dark blue)
     /// Focus ring color (blue on both schemes — WHOOP has no gold).
-    public static let focusRing      = Color(light: "#2F6FCB", dark: "#60A0E0")
+    public static let focusRing      = Color(light: "#0077C8", dark: "#0093E7")
     /// Opacity for dimmed/disabled sections (shared so screens don't invent their own value).
     public static let disabledOpacity: Double = 0.45
 
@@ -147,11 +147,11 @@ public enum StrandPalette {
     // A single warm metal ramp: a deep bronze floor climbs through brand gold into a
     // bright champagne peak — no green anywhere; depleted reads as dim gold, not coral.
     // 0.00 bronze → 0.30 antique gold → 0.55 brand gold → 0.78 soft gold → 1.00 champagne.
-    public static let recovery000 = Color(light: "#C0392B", dark: "#E0463C") // depleted — WHOOP red
-    public static let recovery030 = Color(light: "#D9682A", dark: "#E8743C") // low — red-orange
-    public static let recovery055 = Color(light: "#C99A00", dark: "#F9DF4A") // moderate — WHOOP yellow
-    public static let recovery078 = Color(light: "#6FB23A", dark: "#8FD86A") // primed — yellow-green
-    public static let recovery100 = Color(light: "#0F9D62", dark: "#03E095") // peak — WHOOP green
+    public static let recovery000 = Color(light: "#D90021", dark: "#FF0026") // depleted — WHOOP red
+    public static let recovery030 = Color(light: "#D90021", dark: "#FF0026") // low — red-orange
+    public static let recovery055 = Color(light: "#C9A800", dark: "#FFDE00") // moderate — WHOOP yellow
+    public static let recovery078 = Color(light: "#12B806", dark: "#16EC06") // primed — yellow-green
+    public static let recovery100 = Color(light: "#12B806", dark: "#16EC06") // peak — WHOOP green
 
     /// Ordered gradient stops for the recovery scale (Titanium gold ramp, or the Classic red→green).
     public static var recoveryStops: [Gradient.Stop] {
@@ -170,10 +170,10 @@ public enum StrandPalette {
     // MARK: Strain / Effort ramp — the amber "Effort" colour world.
     // Deep ember → warm amber → bright amber → soft amber peak: heat/output, all in the
     // Effort accent family rather than veering into magenta.
-    public static let strain000 = Color(light: "#7E460E", dark: "#9C5A14") // deep ember
-    public static let strain033 = Color(light: "#A4621B", dark: "#C2762A") // warm amber
-    public static let strain066 = Color(light: "#C2792E", dark: "#D98A3D") // bright amber
-    public static let strain100 = Color(light: "#D89240", dark: "#F0A85A") // soft amber peak
+    public static let strain000 = Color(light: "#5AB0EA", dark: "#6CC3F5") // deep ember
+    public static let strain033 = Color(light: "#2A98DE", dark: "#2FAAF0") // warm amber
+    public static let strain066 = Color(light: "#0077C8", dark: "#0093E7") // bright amber
+    public static let strain100 = Color(light: "#005FA0", dark: "#0074C2") // soft amber peak
 
     public static var strainStops: [Gradient.Stop] {
         isClassic ? cStrainStops : [
@@ -204,9 +204,9 @@ public enum StrandPalette {
     public static var hrZones: [Color] { [zone1, zone1, zone2, zone3, zone4, zone5] }
 
     // MARK: Status — Titanium gold/amber/orange, or the Classic green/amber/red.
-    public static var statusPositive: Color { isClassic ? Color(light: "#2E9E4F", dark: "#46B45A") : Color(light: "#1F8A5B", dark: "#03E095") }
-    public static var statusWarning:  Color { isClassic ? Color(light: "#CFA528", dark: "#F2C53D") : Color(light: "#C2792E", dark: "#F0A020") }
-    public static var statusCritical: Color { isClassic ? Color(light: "#CB3A2F", dark: "#E5483B") : Color(light: "#C84E1E", dark: "#E0662F") }
+    public static var statusPositive: Color { isClassic ? Color(light: "#2E9E4F", dark: "#46B45A") : Color(light: "#12B806", dark: "#16EC06") }
+    public static var statusWarning:  Color { isClassic ? Color(light: "#CFA528", dark: "#F2C53D") : Color(light: "#C9A800", dark: "#FFDE00") }
+    public static var statusCritical: Color { isClassic ? Color(light: "#CB3A2F", dark: "#E5483B") : Color(light: "#D90021", dark: "#FF0026") }
 
     // MARK: Per-metric accents — HRV / SpO₂ / energy / risk. Classic leans the traditional hues (purple HRV, red risk).
     public static var metricCyan:   Color { isClassic ? Color(light: "#2E92B4", dark: "#3FA9C9") : Color(light: "#2E92B4", dark: "#3FA9C9") }
@@ -226,22 +226,22 @@ public enum StrandPalette {
     // full red→green / blue / green→red in Classic regardless of these.
 
     /// Charge (recovery) — gold world / Classic green.
-    public static var chargeColor: Color  { isClassic ? Color(light: "#2E9E4F", dark: "#46B45A") : Color(light: "#0F9D62", dark: "#03E095") }
+    public static var chargeColor: Color  { isClassic ? Color(light: "#2E9E4F", dark: "#46B45A") : Color(light: "#12B806", dark: "#16EC06") }
     public static var chargeDeep: Color    { isClassic ? Color(light: "#207A3C", dark: "#2E9E4F") : Color(light: "#0B7A4A", dark: "#0B9D62") }
     public static var chargeBright: Color  { isClassic ? Color(light: "#5FBE6E", dark: "#86D98E") : Color(light: "#5FD89A", dark: "#6BF0B4") }
-    public static var chargeGlow: Color    { isClassic ? Color(light: "#2E9E4F", dark: "#46B45A") : Color(light: "#0F9D62", dark: "#03E095") }
+    public static var chargeGlow: Color    { isClassic ? Color(light: "#2E9E4F", dark: "#46B45A") : Color(light: "#12B806", dark: "#16EC06") }
     /// Diagonal accent pair for the Charge card wash + gauge stroke (deep → bright).
     public static var chargeGradient: Gradient { Gradient(colors: [chargeDeep, chargeBright]) }
 
     /// Effort (strain) — amber world / Classic blue.
-    public static var effortColor: Color   { isClassic ? Color(light: "#3A74C4", dark: "#4A90E2") : Color(light: "#2A78C8", dark: "#4090E0") }
+    public static var effortColor: Color   { isClassic ? Color(light: "#3A74C4", dark: "#4A90E2") : Color(light: "#0077C8", dark: "#0093E7") }
     public static var effortDeep: Color    { isClassic ? Color(light: "#284F9C", dark: "#2F6FCB") : Color(light: "#1E5B96", dark: "#2A6FB0") }
     public static var effortBright: Color  { isClassic ? Color(light: "#5E92D6", dark: "#7FB2E8") : Color(light: "#5AA0E0", dark: "#74B6F0") }
-    public static var effortGlow: Color    { isClassic ? Color(light: "#3A74C4", dark: "#4A90E2") : Color(light: "#2A78C8", dark: "#4090E0") }
+    public static var effortGlow: Color    { isClassic ? Color(light: "#3A74C4", dark: "#4A90E2") : Color(light: "#0077C8", dark: "#0093E7") }
     public static var effortGradient: Gradient { Gradient(colors: [effortDeep, effortBright]) }
 
     /// Rest (sleep) — blue world / Classic indigo.
-    public static var restColor: Color     { isClassic ? Color(light: "#3A80D6", dark: "#6FA8E8") : Color(light: "#5E7896", dark: "#83A0B8") }
+    public static var restColor: Color     { isClassic ? Color(light: "#3A80D6", dark: "#6FA8E8") : Color(light: "#5E7F99", dark: "#7BA1BB") }
     public static var restDeep: Color      { isClassic ? Color(light: "#203E73", dark: "#2A4C8F") : Color(light: "#234F9E", dark: "#2F6FCB") }
     public static var restBright: Color    { isClassic ? Color(light: "#6A4FC0", dark: "#8E6FD6") : Color(light: "#5790DA", dark: "#6FA8E8") }
     public static var restGlow: Color      { isClassic ? Color(light: "#3A80D6", dark: "#6FA8E8") : Color(light: "#3A80D6", dark: "#4A90E2") }
@@ -257,14 +257,14 @@ public enum StrandPalette {
 
     // MARK: Scenic background (NEW) — detail-screen hero gradient + starfield.
     /// Radial canvas: lit center → deep edge. Used by `ScenicHeroBackground` (warm-lit on light).
-    public static let scenicCenter     = Color(light: "#FBF6EA", dark: "#1C2128")
-    public static let scenicEdge       = Color(light: "#EDE6D6", dark: "#121518")
+    public static let scenicCenter     = Color(light: "#F2F2F7", dark: "#000000")
+    public static let scenicEdge       = Color(light: "#F2F2F7", dark: "#000000")
     /// Star tint for the scenic starfield (very faint on light; the hero suppresses stars there).
     public static let scenicStar       = Color(light: "#D8CDB6", dark: "#C8CFD8")
 
     /// Frosted-card tint endpoints (white→warm on light; the accent wash sits over them).
-    public static let cardFillTop      = Color(light: "#FFFFFF", dark: "#15243C")
-    public static let cardFillBottom   = Color(light: "#FAF7F0", dark: "#0B1424")
+    public static let cardFillTop      = Color(light: "#FFFFFF", dark: "#15181A")
+    public static let cardFillBottom   = Color(light: "#FFFFFF", dark: "#15181A")
 
     // MARK: - Titanium & Gold core tokens (NEW)
     //
@@ -274,7 +274,7 @@ public enum StrandPalette {
 
     /// Brand gold — primary accent. Gold FILLS stay bright (dark text on them is legible in both schemes);
     /// only a hair deeper on light so the fill doesn't wash out against white.
-    public static let gold          = Color(light: "#3A78C8", dark: "#60A0E0") // repointed to WHOOP blue (gold killed 2026-06-22)
+    public static let gold          = Color(light: "#0077C8", dark: "#0093E7") // repointed to WHOOP blue (gold killed 2026-06-22)
     /// Bright blue — accent highlight / hover (was champagne).
     public static let goldLight     = Color(light: "#6FA8E0", dark: "#9FC8F0")
     /// Deep blue — accent low stop (was bronze).
@@ -304,7 +304,14 @@ public enum StrandPalette {
     /// Sample the recovery gradient (bronze → champagne) at a recovery score 0...100.
     /// Returns the exact interpolated color used everywhere recovery is tinted.
     public static func recoveryColor(_ score: Double) -> Color {
-        sample(stops: recoveryStops, at: score / 100.0)
+        // Clean redesign: three discrete zones (red < 34 ≤ yellow < 67 ≤ green), the readiness
+        // read-out everyone recognises, instead of a continuous blend.
+        if isClassic { return sample(stops: recoveryStops, at: score / 100.0) }
+        switch score {
+        case ..<34: return recovery000
+        case ..<67: return recovery055
+        default:    return recovery100
+        }
     }
 
     /// Sample the strain ("Effort") gradient at a value on NOOP's 0...100 Effort scale.

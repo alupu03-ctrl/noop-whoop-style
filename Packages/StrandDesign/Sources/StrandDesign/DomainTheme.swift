@@ -99,7 +99,10 @@ public struct ScenicHeroBackground: View {
         self.fadesToBase = fadesToBase
     }
 
-    public var body: some View {
+    /// Clean redesign: decorative scenery retired — screens sit on the flat black canvas.
+    public var body: some View { StrandPalette.surfaceBase }
+
+    @ViewBuilder var legacySceneryBody: some View {
         ZStack {
             // Radial deep blue-black: lit center → near-black edge.
             RadialGradient(

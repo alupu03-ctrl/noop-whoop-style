@@ -7,6 +7,7 @@
 //  one shared tilt source. Colours come from StrandDesign tokens at the call site.
 
 import SwiftUI
+import StrandDesign
 
 // MARK: - Renderers (pure GraphicsContext drawing)
 
@@ -195,110 +196,96 @@ enum LiquidRender {
             return p
         }
         var ctx = base
-        ctx.stroke(curve(), with: .color(tint.opacity(0.9)), style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
-        // travelling glint
-        let phase = -(now * 55).truncatingRemainder(dividingBy: 414)
-        ctx.stroke(curve(), with: .color(.white.opacity(0.55)),
-                   style: StrokeStyle(lineWidth: 1.1, lineCap: .round, dash: [14, 400], dashPhase: phase))
-        // endpoint pulse
+        ctx.stroke(curve(), with: .color(tint), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        // soft area under the line
+        var area = curve()
+        area.addLine(to: CGPoint(x: px(n - 1), y: h))
+        area.addLine(to: CGPoint(x: px(0), y: h))
+        area.closeSubpath()
+        ctx.fill(area, with: .linearGradient(Gradient(colors: [tint.opacity(0.22), tint.opacity(0)]),
+                                             startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: 0, y: h)))
+        // endpoint dot
         let ex = px(n - 1), ey = py(values[n - 1])
-        let pr = 3 + sin(now * 6) * 1.1
-        ctx.fill(Path(ellipseIn: CGRect(x: ex - pr - 4, y: ey - pr - 4, width: (pr + 4) * 2, height: (pr + 4) * 2)), with: .color(tint.opacity(0.15)))
+        let pr: Double = 3.5
         ctx.fill(Path(ellipseIn: CGRect(x: ex - pr, y: ey - pr, width: pr * 2, height: pr * 2)), with: .color(tint))
     }
 }
 
 // MARK: - Views
 
-/// A circular liquid gauge. `value` is 0...1 (nil = empty/no-data). Tap → splash.
+/// A circular score ring (WHOOP-inspired redesign). `value` is 0...1 (nil = empty/no-data).
 ///
-/// `animated: false` renders a single static frame (no TimelineView, no CoreMotion) — the small
-/// gauges in card rows / vitals slosh imperceptibly at 26–30pt but each cost a live 30fps Canvas,
-/// so they pose still and CoreAnimation caches them. The big hero gauges stay animated.
+/// Formerly a sloshing liquid vessel; now a clean, flat ring: a faint track plus a rounded arc that
+/// sweeps clockwise from 12 o'clock. The public API (value / tint / animated) is unchanged so every
+/// call site across the app picks up the new look with no edits. `animated` sweeps the arc in on
+/// appear/change; static rings render posed at their value.
 struct LiquidVessel: View {
     let value: Double?
     let tint: Color
     var animated: Bool = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var sim: LiquidSim
-    @State private var splashes = 0
+    @State private var shown: Double = 0
 
     init(value: Double?, tint: Color, animated: Bool = true) {
         self.value = value
         self.tint = tint
         self.animated = animated
-        _sim = State(initialValue: LiquidSim(target: value ?? 0))
     }
+
+    private var target: Double { max(0, min(1, value ?? 0)) }
 
     var body: some View {
-        if animated && !reduceMotion { gauge } else { staticGauge }
-    }
-
-    private var gauge: some View {
-        // 60fps: on the 120Hz ProMotion panel a 30fps cap updated the fluid only every 4th refresh,
-        // which read as juddery slosh. Only the 3 hero gauges + HR thread run live now (the small ones
-        // are static), so the higher rate is affordable and the liquid actually flows.
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { tl in
-            let now = liquidSeconds(tl.date)
-            Canvas { context, size in
-                sim.step(now: now, tilt: LiquidMotion.shared.tilt, target: value ?? 0)
-                LiquidRender.vessel(context, size, sim, now: now, tint: tint)
+        GeometryReader { geo in
+            let d = min(geo.size.width, geo.size.height)
+            let line = max(2.5, d * 0.085)
+            let frac = (animated && !reduceMotion) ? shown : target
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.09), lineWidth: line)
+                if value != nil, frac > 0.001 {
+                    Circle()
+                        .trim(from: 0, to: max(0.012, frac))
+                        .stroke(tint, style: StrokeStyle(lineWidth: line, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
             }
+            .padding(line / 2)
+            .frame(width: d, height: d)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .aspectRatio(1, contentMode: .fit)
-        .contentShape(Circle())
-        .onTapGesture { sim.splash(12); splashes &+= 1 }
-        .liquidTapHaptic(trigger: splashes)   // light tap feedback (guarded so the primitives compile on macOS 13)
-        .onAppear { LiquidMotion.shared.acquire() }
-        .onDisappear { LiquidMotion.shared.release() }
+        .onAppear { sweep() }
+        .onChangeCompat(of: value) { _ in sweep() }
     }
 
-    /// One-shot, cached render — posed at the fill line, no clock, no motion acquire.
-    private var staticGauge: some View {
-        Canvas { context, size in
-            LiquidRender.vessel(context, size, LiquidSim.posed(value ?? 0), now: 0, tint: tint)
-        }
-        .aspectRatio(1, contentMode: .fit)
-        .contentShape(Circle())
+    private func sweep() {
+        guard animated && !reduceMotion else { shown = target; return }
+        withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.9)) { shown = target }
     }
 }
 
-/// A horizontal liquid tube filled to `frac` (0...1).
-///
-/// `animated: false` poses it still and lets CoreAnimation cache the layer — the 8pt grid tubes
-/// and 12pt workout bar don't need a live 30fps Canvas each. Hero-adjacent tubes can stay live.
+/// A flat horizontal progress bar filled to `frac` (0...1). Formerly a liquid tube; same API.
 struct LiquidTube: View {
     let frac: Double
     let tint: Color
     var height: CGFloat = 14
     var animated: Bool = true
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var sim = LiquidSim(target: 0)
-
     var body: some View {
-        if animated && !reduceMotion { liveTube } else { staticTube }
-    }
-
-    private var liveTube: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { tl in
-            let now = liquidSeconds(tl.date)
-            Canvas { context, size in
-                sim.step(now: now, tilt: LiquidMotion.shared.tilt, target: frac)
-                LiquidRender.tube(context, size, sim, now: now, frac: max(0, min(1, frac)), tint: tint)
+        let f = max(0, min(1, frac))
+        let h = min(height, 6)
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.08))
+                if f > 0.001 {
+                    Capsule().fill(tint)
+                        .frame(width: max(h, geo.size.width * f))
+                }
             }
         }
-        .frame(height: height)
-        .onAppear { LiquidMotion.shared.acquire() }
-        .onDisappear { LiquidMotion.shared.release() }
-    }
-
-    private var staticTube: some View {
-        Canvas { context, size in
-            LiquidRender.tube(context, size, LiquidSim.posed(frac), now: 0,
-                              frac: max(0, min(1, frac)), tint: tint)
-        }
+        .frame(height: h)
+        .frame(maxHeight: height, alignment: .center)
         .frame(height: height)
     }
 }
@@ -313,7 +300,7 @@ struct LiquidThread: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        if animated && !reduceMotion { liveThread } else { staticThread }
+        staticThread   // clean redesign: no travelling glint, so no per-frame clock is needed
     }
 
     private var liveThread: some View {
