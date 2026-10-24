@@ -62,9 +62,10 @@ struct RootTabView: View {
             // native TabView still drives content + per-tab nav state; only its bar is hidden.
             TabView(selection: $selectedTab) {
                 tab(todayTabRoot, "Today", "square.grid.2x2").tag(0)
-                tab(TrendsView(), "Trends", "chart.line.uptrend.xyaxis").tag(1)
-                tab(SleepView(), "Sleep", "bed.double").tag(2)
-                moreTab.tag(3)
+                tab(SleepView(), "Sleep", "moon.stars").tag(1)
+                tab(WorkoutsView(), "Activity", "figure.run").tag(2)
+                tab(TrendsView(), "Trends", "chart.bar").tag(3)
+                moreTab.tag(4)
             }
             .tint(StrandPalette.accent)
             .toolbar(.hidden, for: .tabBar)
@@ -80,7 +81,7 @@ struct RootTabView: View {
                         guard selectedTab != 0 else { return }
                         let dx = v.translation.width, dy = v.translation.height
                         guard abs(dx) > 60, abs(dx) > abs(dy) * 1.6 else { return }
-                        let next = min(3, max(0, selectedTab + (dx < 0 ? 1 : -1)))
+                        let next = min(4, max(0, selectedTab + (dx < 0 ? 1 : -1)))
                         if next != selectedTab {
                             withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.24)) { selectedTab = next }
                         }
@@ -129,7 +130,7 @@ struct RootTabView: View {
                 router.requestedDestination = nil
             case .trends:
                 // Trends is a primary tab on iPhone (not a pillar sheet) — switch to it.
-                withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.24)) { selectedTab = 1 }
+                withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.24)) { selectedTab = 3 }
                 router.requestedDestination = nil
             case .activeWorkout:
                 // The Today active-workout indicator opens Live through the quick-action Live sheet; once
@@ -539,39 +540,27 @@ private struct FloatingTabBar: View {
     var onReselect: (Int) -> Void = { _ in }
 
     private struct Item: Identifiable { let title: LocalizedStringKey; let icon: String; let tag: Int; var id: Int { tag } }
-    private let nav = [Item(title: "Today", icon: "square.grid.2x2", tag: 0),
-                       Item(title: "Trends", icon: "chart.line.uptrend.xyaxis", tag: 1),
-                       Item(title: "Sleep", icon: "bed.double", tag: 2),
-                       Item(title: "More", icon: "ellipsis", tag: 3)]
+    private let nav = [
+        Item(title: "Today", icon: "house.fill", tag: 0),
+        Item(title: "Sleep", icon: "moon.stars.fill", tag: 1),
+        Item(title: "Activity", icon: "figure.run", tag: 2),
+        Item(title: "Trends", icon: "chart.bar.fill", tag: 3),
+        Item(title: "More", icon: "line.3.horizontal", tag: 4)
+    ]
 
     var body: some View {
-        // One frosted glass bar, four evenly-spaced tabs. The quick-action "+" now lives in the
-        // top-right of each screen's header (balancing the profile avatar on the left).
-        HStack(spacing: 2) {
-            tabButton(nav[0])
-            tabButton(nav[1])
-            tabButton(nav[2])
-            tabButton(nav[3])
+        HStack(spacing: 0) {
+            ForEach(nav) { item in
+                tabButton(item)
+            }
         }
-        .padding(.vertical, 7)
-        .padding(.horizontal, 8)
-        .liquidGlass(in: Capsule())
-        // Over the liquid Today the sky ends at ~340pt, so the bar floats on flat opaque surfaceBase —
-        // a blur material has nothing to dissolve and hardens into a solid lozenge (2026-07-02:
-        // "clips into a solid shape"). A faint translucent scrim INSIDE the same Capsule keeps the pill
-        // reading as tinted glass, not a slab, even against dead-flat colour.
-        .background(.white.opacity(0.06), in: Capsule())
-        // Soft top-lit rim instead of one hard hairline, so there's no crisp cut-out edge.
-        .overlay(
-            Capsule().strokeBorder(
-                LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0.04)],
-                               startPoint: .top, endPoint: .bottom),
-                lineWidth: 0.75)
-        )
-        // Lighter, wider shadow: real elevation without stamping a dark halo on the flat canvas.
-        .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 8)
-        .padding(.horizontal, 22)
-        .padding(.bottom, 4)
+        .padding(.top, 9)
+        .padding(.bottom, 5)
+        .padding(.horizontal, 10)
+        .background(ReferenceTheme.background)
+        .overlay(alignment: .top) {
+            Rectangle().fill(ReferenceTheme.border).frame(height: 1)
+        }
     }
 
     private func tabButton(_ item: Item) -> some View {
@@ -589,7 +578,7 @@ private struct FloatingTabBar: View {
                 Text(item.title)
                     .font(.system(size: 10, weight: active ? .semibold : .medium))
             }
-            .foregroundStyle(active ? StrandPalette.accent : StrandPalette.textSecondary)
+            .foregroundStyle(active ? ReferenceTheme.strain : ReferenceTheme.muted)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 3)
             .contentShape(Rectangle())
