@@ -34,8 +34,12 @@ struct RootTabView: View {
     @AppStorage("noop.liquidTodayEnabled") private var liquidTodayEnabled = true
 
     /// The Today tab root, honouring the liquid/classic preference.
+    @AppStorage("noop.referenceTodayEnabled") private var referenceTodayEnabled = true
+
     @ViewBuilder private var todayTabRoot: some View {
-        if liquidTodayEnabled { LiquidTodayView() } else { TodayView() }
+        if referenceTodayEnabled { ReferenceTodayView() }
+        else if liquidTodayEnabled { LiquidTodayView() }
+        else { TodayView() }
     }
 
     init() {
