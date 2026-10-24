@@ -7,6 +7,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 concurrency:
   group: ios-ipa-${{ github.ref }}
   cancel-in-progress: true
@@ -69,3 +72,20 @@ jobs:
           name: NOOP-ipa
           path: dist/NOOP-whoop-style.ipa
           if-no-files-found: error
+
+      - name: Publish release + builds branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="build-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" dist/NOOP-whoop-style.ipa --repo "$GITHUB_REPOSITORY" \
+            --title "NOOP WHOOP-style build ${GITHUB_RUN_NUMBER}" \
+            --notes "Unsigned IPA for AltStore / SideStore. Open this page on your iPhone, tap the .ipa, then Share → AltStore." --latest
+          git config user.name "build-bot"; git config user.email "build-bot@users.noreply.github.com"
+          git checkout --orphan builds
+          git rm -rf --cached . >/dev/null
+          cp dist/NOOP-whoop-style.ipa ./NOOP-whoop-style.ipa
+          git add -f NOOP-whoop-style.ipa
+          git commit -qm "IPA build ${GITHUB_RUN_NUMBER}"
+          git push -f origin builds
