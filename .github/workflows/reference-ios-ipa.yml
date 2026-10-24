@@ -1,0 +1,85 @@
+# Build the reference redesign for physical iPhones, without publishing a release.
+# AltStore / SideStore re-sign the unsigned IPA during installation.
+name: Reference UI IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [design/reference-ui-redesign]
+    paths:
+      - 'Strand/**'
+      - 'StrandiOS/**'
+      - 'StrandiOSShared/**'
+      - 'Packages/**'
+      - 'project.yml'
+      - 'Tools/anonymize-ios-app.sh'
+      - '.github/workflows/reference-ios-ipa.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reference-ios-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate sideload project without embedded watch app
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("project.yml").read_text()
+          needle = "\n      - target: NOOPWatch\n"
+          assert needle in src, "Expected NOOPWatch dependency not found"
+          Path("project.sideload.yml").write_text(src.replace(needle, "\n", 1))
+          PY
+          xcodegen generate --spec project.sideload.yml
+
+      - name: Build unsigned iPhone app
+        run: |
+          set -o pipefail
+          xcodebuild -project Strand.xcodeproj -scheme NOOPiOS -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/reference-dd \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
+          test -d build/reference-dd/Build/Products/Release-iphoneos/NOOP.app
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-ipa-build-log
+          path: build.log
+          if-no-files-found: ignore
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          app="build/reference-dd/Build/Products/Release-iphoneos/NOOP.app"
+          Tools/anonymize-ios-app.sh "$app"
+          mkdir -p stage/Payload dist
+          ditto "$app" stage/Payload/NOOP.app
+          rm -rf stage/Payload/NOOP.app/Watch
+          (cd stage && /usr/bin/ditto -c -k --sequesterRsrc --keepParent Payload ../dist/NOOP-reference-ui.ipa)
+          ls -lh dist/NOOP-reference-ui.ipa
+
+      - name: Upload IPA for AltStore
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOOP-reference-ui-ipa
+          path: dist/NOOP-reference-ui.ipa
+          if-no-files-found: error
+          retention-days: 14

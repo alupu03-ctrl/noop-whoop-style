@@ -1,0 +1,55 @@
+name: Reference UI iOS build
+on:
+  workflow_dispatch:
+  push:
+    branches: [design/reference-ui-redesign]
+    paths:
+      - 'Strand/**'
+      - 'StrandiOS/**'
+      - 'StrandiOSShared/**'
+      - 'Packages/**'
+      - 'project.yml'
+      - '.github/workflows/reference-ios-build.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate iPhone-only simulator validation project
+        # The iOS scheme embeds a watchOS app. Generic iPhone simulator builds
+        # incorrectly compile its complication against the iOS SDK (accessoryCorner).
+        # Exclude ONLY the watch embed in this temporary CI project; never modify
+        # the checked-in project.yml or the actual device distribution configuration.
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("project.yml").read_text()
+          anchor = "      - target: NOOPiOSWidgets"
+          head, sep, tail = src.partition(anchor)
+          assert sep, "iOS widget dependency anchor missing"
+          watch = "      - target: NOOPWatch"
+          assert watch in tail, "Watch dependency missing"
+          tail = tail.replace(watch, "      # Watch embed excluded for iPhone-only simulator compile", 1)
+          Path("project.ci.yml").write_text(head + sep + tail)
+          PY
+          xcodegen generate --spec project.ci.yml
+      - name: Build iOS simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project Strand.xcodeproj -scheme NOOPiOS -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ios-build.log
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-ios-build-log
+          path: ios-build.log
+          if-no-files-found: ignore
