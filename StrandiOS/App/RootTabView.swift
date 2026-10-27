@@ -46,7 +46,7 @@ struct RootTabView: View {
         // unless it's explicitly cleared.)
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(StrandPalette.surfaceBase)
+        appearance.backgroundColor = UIColor(red: 0.985, green: 0.980, blue: 0.968, alpha: 1)
         appearance.selectionIndicatorTintColor = .clear
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
@@ -66,7 +66,7 @@ struct RootTabView: View {
                 tab(SleepView(), "Sleep", "bed.double").tag(2)
                 moreTab.tag(3)
             }
-            .tint(StrandPalette.accent)
+            .tint(Color.black)
             .toolbar(.hidden, for: .tabBar)
             // Tab crossfade — README §Motion: ~240ms opacity swap between tab roots, global calm
             // easing cubic-bezier(0.22,1,0.36,1).
@@ -555,7 +555,7 @@ private struct FloatingTabBar: View {
         }
         .padding(.vertical, 7)
         .padding(.horizontal, 8)
-        .liquidGlass(in: Capsule())
+        .background(Color.white.opacity(0.97), in: Capsule())
         // Over the liquid Today the sky ends at ~340pt, so the bar floats on flat opaque surfaceBase —
         // a blur material has nothing to dissolve and hardens into a solid lozenge (2026-07-02:
         // "clips into a solid shape"). A faint translucent scrim INSIDE the same Capsule keeps the pill
@@ -569,7 +569,7 @@ private struct FloatingTabBar: View {
                 lineWidth: 0.75)
         )
         // Lighter, wider shadow: real elevation without stamping a dark halo on the flat canvas.
-        .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 8)
+        .shadow(color: .black.opacity(0.055), radius: 12, x: 0, y: 4)
         .padding(.horizontal, 22)
         .padding(.bottom, 4)
     }
@@ -589,7 +589,7 @@ private struct FloatingTabBar: View {
                 Text(item.title)
                     .font(.system(size: 10, weight: active ? .semibold : .medium))
             }
-            .foregroundStyle(active ? StrandPalette.accent : StrandPalette.textSecondary)
+            .foregroundStyle(active ? Color.black : Color.black.opacity(0.62))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 3)
             .contentShape(Rectangle())

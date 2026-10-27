@@ -191,7 +191,9 @@ struct NOOPChargeView: View {
     var body: some View {
         switch family {
         case .accessoryCircular:    circular
+        #if os(watchOS)
         case .accessoryCorner:      corner
+        #endif
         case .accessoryInline:      Text(inlineText)
         case .accessoryRectangular: rectangular
         default:                    circular
@@ -450,6 +452,14 @@ struct NOOPChargeView: View {
 struct NOOPChargeComplication: Widget {
     let kind = "NOOPChargeComplication"
 
+    private var supportedNOOPFamilies: [WidgetFamily] {
+        #if os(watchOS)
+        return [.accessoryCircular, .accessoryCorner, .accessoryInline, .accessoryRectangular]
+        #else
+        return [.accessoryCircular, .accessoryInline, .accessoryRectangular]
+        #endif
+    }
+
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: ChargeProvider()) { entry in
             NOOPChargeView(entry: entry)
@@ -457,11 +467,6 @@ struct NOOPChargeComplication: Widget {
         }
         .configurationDisplayName("NOOP Charge")
         .description("Your Charge (recovery) on the watch face, with Effort and Rest in the rectangular card.")
-        .supportedFamilies([
-            .accessoryCircular,
-            .accessoryCorner,
-            .accessoryInline,
-            .accessoryRectangular
-        ])
+        .supportedFamilies(supportedNOOPFamilies)
     }
 }
