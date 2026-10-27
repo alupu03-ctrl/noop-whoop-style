@@ -46,7 +46,7 @@ struct RootTabView: View {
         // unless it's explicitly cleared.)
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(StrandPalette.surfaceBase)
+        appearance.backgroundColor = UIColor(red: 0.985, green: 0.980, blue: 0.968, alpha: 1)
         appearance.selectionIndicatorTintColor = .clear
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
@@ -66,7 +66,7 @@ struct RootTabView: View {
                 tab(SleepView(), "Sleep", "bed.double").tag(2)
                 moreTab.tag(3)
             }
-            .tint(StrandPalette.accent)
+            .tint(Color.black)
             .toolbar(.hidden, for: .tabBar)
             // Tab crossfade — README §Motion: ~240ms opacity swap between tab roots, global calm
             // easing cubic-bezier(0.22,1,0.36,1).
