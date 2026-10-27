@@ -2,6 +2,8 @@ name: NOOP Minimal iOS IPA
 on:
   push:
     branches: [design/noop-minimal-2026]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
