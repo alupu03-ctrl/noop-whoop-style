@@ -555,7 +555,7 @@ private struct FloatingTabBar: View {
         }
         .padding(.vertical, 7)
         .padding(.horizontal, 8)
-        .liquidGlass(in: Capsule())
+        .background(Color.white.opacity(0.97), in: Capsule())
         // Over the liquid Today the sky ends at ~340pt, so the bar floats on flat opaque surfaceBase —
         // a blur material has nothing to dissolve and hardens into a solid lozenge (2026-07-02:
         // "clips into a solid shape"). A faint translucent scrim INSIDE the same Capsule keeps the pill
@@ -569,7 +569,7 @@ private struct FloatingTabBar: View {
                 lineWidth: 0.75)
         )
         // Lighter, wider shadow: real elevation without stamping a dark halo on the flat canvas.
-        .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 8)
+        .shadow(color: .black.opacity(0.055), radius: 12, x: 0, y: 4)
         .padding(.horizontal, 22)
         .padding(.bottom, 4)
     }
@@ -589,7 +589,7 @@ private struct FloatingTabBar: View {
                 Text(item.title)
                     .font(.system(size: 10, weight: active ? .semibold : .medium))
             }
-            .foregroundStyle(active ? StrandPalette.accent : StrandPalette.textSecondary)
+            .foregroundStyle(active ? Color.black : Color.black.opacity(0.62))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 3)
             .contentShape(Rectangle())
