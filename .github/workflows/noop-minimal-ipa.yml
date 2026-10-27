@@ -19,7 +19,7 @@ jobs:
       - name: Build unsigned iOS app
         run: |
           set -o pipefail
-          xcodebuild -project Strand.xcodeproj -scheme NOOPiOS -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/noop-derived" CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -project Strand.xcodeproj -scheme NOOPiOS -configuration Release -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/noop-derived" CODE_SIGNING_ALLOWED=NO build
       - name: Package IPA for AltStore signing
         run: |
           set -euo pipefail
